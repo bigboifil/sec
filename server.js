@@ -1,22 +1,40 @@
-const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
-// Создаём сервер
-const server = http.createServer((req, res) => {
-    const userData = {
-        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-        userAgent: req.headers['user-agent'],
-        time: new Date().toISOString()
-    };
+app.use(express.json());
 
-    // Логируем данные на сервере (для теста)
-    console.log('Данные пользователя:', userData);
+// Эндпоинт для получения данных пользователя
+app.post('/api/save-user-data', (req, res) => {
+    const userData = req.body;
 
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Сервер работает, данные записаны!');
+    // Извлекаем первый IP-адрес из списка (если несколько)
+    const ip = userData.ip.split(',')[0].trim();
+
+    // Путь для сохранения данных
+    const userDir = path.join(__dirname, 'data', ip);
+
+    // Проверяем, существует ли папка для этого IP, если нет — создаем
+    if (!fs.existsSync(userDir)) {
+        fs.mkdirSync(userDir, { recursive: true });
+    }
+
+    // Создаем файл для хранения данных с именем по текущему времени
+    const fileName = `${new Date().toISOString()}.json`;
+    const filePath = path.join(userDir, fileName);
+
+    // Записываем данные в файл
+    fs.writeFile(filePath, JSON.stringify(userData, null, 2), (err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Ошибка записи данных' });
+        }
+        res.status(200).json({ message: 'Данные успешно сохранены' });
+    });
 });
 
-// Порт, который выбирает Render
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+// Запуск сервера
+app.listen(port, () => {
+    console.log(`Сервер запущен на порту ${port}`);
 });
