@@ -4,9 +4,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // GitHub конфигурация
-const GITHUB_TOKEN = 'твой_токен';
-const REPO_OWNER = 'твой_логин'; // Логин пользователя или организация
-const REPO_NAME = 'название_репозитория';
+const GITHUB_TOKEN = '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';
+const REPO_OWNER = 'bigboifil'; // Логин пользователя или организация
+const REPO_NAME = 'sec';
 const BRANCH = 'main'; // Ветка, куда отправляются данные
 
 app.use(express.json());
