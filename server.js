@@ -7,7 +7,7 @@ const savedIPs = new Set();
 
 const server = http.createServer(async (req, res) => {
     const ipAddresses = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const localIP = ipAddresses.split(',').pop().trim();
+    const localIP = ipAddresses.split(',')[0].trim(); // Берём первый IP
 
     if (savedIPs.has(localIP)) {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
