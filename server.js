@@ -1,3 +1,4 @@
+// Библиотеки
 const http = require('http');
 const axios = require('axios');
 const userAgent = require('useragent');
@@ -6,15 +7,17 @@ const userAgent = require('useragent');
 const savedIPs = new Set();
 
 const server = http.createServer(async (req, res) => {
+    // Получаем IP конечного пользователя
     const ipAddresses = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const localIP = ipAddresses.split(',')[0].trim(); // Берём первый IP
+    const localIP = ipAddresses.split(',')[0].trim();
 
+    // Проверка IP на уникальность
     if (savedIPs.has(localIP)) {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('Hi again!');
         return;
     }
-
+    // Добавляем очередной IP в хранилище
     savedIPs.add(localIP);
 
     // Основная информация о пользователе
@@ -23,8 +26,6 @@ const server = http.createServer(async (req, res) => {
         userAgent: req.headers['user-agent'],
         time: new Date().toISOString(),
         language: req.headers['accept-language'] || 'unknown',
-        referrer: req.headers['referer'] || 'direct',
-        connection: req.headers['connection'] || 'unknown',
     };
 
     // Расширенный анализ user-agent
@@ -53,6 +54,7 @@ const server = http.createServer(async (req, res) => {
     res.end('Have a good day!');
 });
 
+// Запуск сервера render
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
