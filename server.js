@@ -1,69 +1,40 @@
-const express = require('express');
-const axios = require('axios');
-const app = express();
-const port = process.env.PORT || 3000;
+const http = require('http');
 
-// GitHub конфигурация
-const GITHUB_TOKEN = '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';
-const REPO_OWNER = 'bigboifil'; // Логин пользователя или организация
-const REPO_NAME = 'sec';
-const BRANCH = 'main'; // Ветка, куда отправляются данные
+// Хранилище для уникальных IP-адресов
+const savedIPs = new Set();
 
-app.use(express.json());
+// Создаём сервер
+const server = http.createServer((req, res) => {
+    // Получение локального IP
+    const ipAddresses = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const localIP = ipAddresses.split(',').pop().trim();
 
-// Эндпоинт для получения данных пользователя
-app.post('/api/save-user-data', async (req, res) => {
-    const userData = req.body;
-
-    // Создаем уникальное имя файла
-    const ip = userData.ip.split(',')[0].trim();
-    const fileName = `data/${ip}/${new Date().toISOString()}.json`;
-    const fileContent = JSON.stringify(userData, null, 2);
-
-    // Составляем запрос для GitHub API
-    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${fileName}`;
-    const commitMessage = `Добавлены данные для IP ${ip}`;
-
-    try {
-        // Получаем SHA старого файла (если он существует)
-        let sha = null;
-        try {
-            const { data } = await axios.get(url, {
-                headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
-                },
-            });
-            sha = data.sha;
-        } catch (error) {
-            if (error.response.status !== 404) {
-                throw error;
-            }
-        }
-
-        // Сохраняем новый файл
-        await axios.put(
-            url,
-            {
-                message: commitMessage,
-                content: Buffer.from(fileContent).toString('base64'),
-                branch: BRANCH,
-                sha,
-            },
-            {
-                headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
-                },
-            }
-        );
-
-        res.status(200).json({ message: 'Данные успешно сохранены на GitHub' });
-    } catch (error) {
-        console.error('Ошибка при сохранении данных:', error.message);
-        res.status(500).json({ error: 'Ошибка при сохранении данных' });
+    // Если IP уже существует в хранилище, ничего не делаем
+    if (savedIPs.has(localIP)) {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Данные уже сохранены.');
+        return;
     }
+
+    // Добавляем IP в хранилище
+    savedIPs.add(localIP);
+
+    // Формируем данные пользователя
+    const userData = {
+        ip: localIP,
+        userAgent: req.headers['user-agent'],
+        time: new Date().toISOString(),
+    };
+
+    // Логируем данные только для новых IP
+    console.log('Новый пользователь:', userData);
+
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Сервер работает, данные записаны!');
 });
 
-// Запуск сервера
-app.listen(port, () => {
-    console.log(`Сервер запущен на порту ${port}`);
+// Порт, который выбирает Render
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
